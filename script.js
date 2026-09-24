@@ -1,374 +1,178 @@
-/* Estética Inspirada no 4shared (Versão Clássica 2009 com Responsividade Total) */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+const { FFmpeg } = FFmpegWASM;
+let ffmpeg = null;
+let selectedFile = null;
+let isFFmpegReady = false;
 
-body {
-    font-family: Arial, Tahoma, Verdana, sans-serif;
-    background-color: #eef2f7;
-    color: #333333;
-    font-size: 12px;
-    line-height: 1.4;
-    overflow-x: hidden;
-}
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const fileNameSpan = document.getElementById('fileName');
+const convertBtn = document.getElementById('convertBtn');
+const progressContainer = document.getElementById('progressContainer');
+const progressBar = document.getElementById('progressBar');
+const statusText = document.getElementById('statusText');
+const resultContainer = document.getElementById('resultContainer');
+const downloadLink = document.getElementById('downloadLink');
 
-.container {
-    width: 100%;
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 12px;
-}
+// Eventos de Drag & Drop
+dropZone.addEventListener('click', () => fileInput.click());
 
-/* Top Bar */
-#top-bar {
-    background: linear-gradient(to bottom, #2b62b3, #1a4585);
-    border-bottom: 1px solid #112d57;
-    color: #ffffff;
-    padding: 6px 0;
-    font-size: 11px;
-}
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#2b62b3';
+    dropZone.style.background = '#eef4fc';
+});
 
-.top-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+dropZone.addEventListener('dragleave', () => {
+    dropZone.style.borderColor = '#99b8e2';
+    dropZone.style.background = '#f7faff';
+});
 
-.retro-badge {
-    background-color: #ff9900;
-    color: #fff;
-    padding: 1px 5px;
-    font-size: 9px;
-    font-weight: bold;
-    border-radius: 3px;
-    margin-left: 5px;
-}
-
-/* Header */
-#header {
-    background: #ffffff;
-    border-bottom: 1px solid #d5dce5;
-    padding: 15px 0;
-}
-
-.header-flex {
-    display: flex;
-    align-items: center;
-}
-
-.brand h1 {
-    font-size: 22px;
-    color: #1a4585;
-    font-weight: bold;
-}
-
-.brand h1 span {
-    color: #ff7700;
-}
-
-.tagline {
-    font-size: 11px;
-    color: #666;
-    margin-top: 2px;
-}
-
-/* Navegação */
-#nav-bar {
-    background: #2b62b3;
-    border-bottom: 3px solid #1a4585;
-}
-
-#nav-bar ul {
-    list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-}
-
-#nav-bar li a {
-    display: block;
-    color: #ffffff;
-    padding: 8px 15px;
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 11px;
-    border-right: 1px solid #1a4585;
-}
-
-#nav-bar li a:hover, #nav-bar li a.active {
-    background-color: #1a4585;
-}
-
-/* Main Content */
-.main-content {
-    padding: 15px 0;
-}
-
-/* Welcome Box */
-.welcome-box {
-    background: #fff8e8;
-    border: 1px solid #f6d28c;
-    padding: 12px 15px;
-    margin-bottom: 15px;
-    border-radius: 4px;
-}
-
-.welcome-box h2 {
-    font-size: 14px;
-    color: #b86200;
-    margin-bottom: 4px;
-}
-
-.welcome-box p {
-    font-size: 12px;
-    color: #444;
-}
-
-/* Panel Estilo 4shared */
-.panel {
-    background: #ffffff;
-    border: 1px solid #bcd0ee;
-    border-radius: 5px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    margin-bottom: 15px;
-    overflow: hidden;
-}
-
-.panel-header {
-    background: linear-gradient(to bottom, #e4edf8, #c8daf4);
-    border-bottom: 1px solid #bcd0ee;
-    padding: 8px 12px;
-}
-
-.panel-header h3 {
-    font-size: 12px;
-    color: #1a4585;
-    font-weight: bold;
-}
-
-.panel-body {
-    padding: 15px;
-}
-
-/* Drop Zone */
-.drop-zone {
-    border: 2px dashed #99b8e2;
-    background: #f7faff;
-    padding: 25px 15px;
-    text-align: center;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 20px;
-}
-
-.drop-zone:hover {
-    background: #eef4fc;
-    border-color: #2b62b3;
-}
-
-.drop-icon {
-    font-size: 32px;
-    margin-bottom: 8px;
-}
-
-.drop-title {
-    font-size: 13px;
-    font-weight: bold;
-    color: #1a4585;
-    margin-bottom: 4px;
-}
-
-.drop-sub {
-    font-size: 11px;
-    color: #666;
-}
-
-.file-info {
-    margin-top: 10px;
-    font-size: 11px;
-    color: #2b62b3;
-    word-break: break-all;
-}
-
-/* Configurações */
-.config-section {
-    border-top: 1px solid #e1e8f0;
-    padding-top: 15px;
-    margin-bottom: 20px;
-}
-
-.config-section h4 {
-    font-size: 12px;
-    color: #333;
-    margin-bottom: 10px;
-}
-
-.config-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.config-item label {
-    display: block;
-    font-size: 11px;
-    font-weight: bold;
-    color: #444;
-    margin-bottom: 4px;
-}
-
-.config-item select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #bcd0ee;
-    border-radius: 3px;
-    background: #fff;
-    font-size: 12px;
-    color: #333;
-}
-
-/* Ação / Botão 4shared */
-.action-bar {
-    text-align: center;
-}
-
-.btn-4shared {
-    background: linear-gradient(to bottom, #ff9900, #e68500);
-    border: 1px solid #b86200;
-    color: #ffffff;
-    padding: 12px 25px;
-    font-size: 14px;
-    font-weight: bold;
-    border-radius: 4px;
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    width: 100%;
-    max-width: 300px;
-}
-
-.btn-4shared:hover:not(:disabled) {
-    background: linear-gradient(to bottom, #ffaa19, #f08c00);
-}
-
-.btn-4shared:disabled {
-    background: #cccccc;
-    border-color: #999999;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-/* Progresso */
-.progress-container {
-    margin-top: 20px;
-    background: #f4f6fa;
-    border: 1px solid #d0dce8;
-    padding: 12px;
-    border-radius: 4px;
-}
-
-.status-text {
-    font-size: 11px;
-    font-weight: bold;
-    color: #1a4585;
-    margin-bottom: 6px;
-}
-
-.progress-bar-bg {
-    background: #e0e6ef;
-    height: 14px;
-    border-radius: 3px;
-    overflow: hidden;
-    border: 1px solid #bcd0ee;
-}
-
-.progress-bar-fill {
-    background: linear-gradient(to right, #2b62b3, #4a84dc);
-    width: 0%;
-    height: 100%;
-    transition: width 0.1s;
-}
-
-/* Resultado */
-.result-container {
-    margin-top: 20px;
-    background: #eafaf1;
-    border: 1px solid #a3e4d7;
-    padding: 15px;
-    text-align: center;
-    border-radius: 4px;
-}
-
-.result-container p {
-    font-size: 12px;
-    color: #117a65;
-    font-weight: bold;
-    margin-bottom: 8px;
-}
-
-.btn-download {
-    display: inline-block;
-    background: linear-gradient(to bottom, #2ecc71, #27ae60);
-    border: 1px solid #1e8449;
-    color: white;
-    padding: 8px 18px;
-    text-decoration: none;
-    font-size: 12px;
-    font-weight: bold;
-    border-radius: 3px;
-}
-
-.btn-download:hover {
-    background: linear-gradient(to bottom, #5ab982, #2ecc71);
-}
-
-/* Disclaimer */
-.disclaimer-box {
-    background: #fdfefe;
-    border: 1px solid #d5dce5;
-    padding: 10px 15px;
-    font-size: 10px;
-    color: #666;
-    border-radius: 4px;
-    text-align: justify;
-}
-
-/* Footer */
-#footer {
-    text-align: center;
-    padding: 15px 0;
-    font-size: 10px;
-    color: #777;
-    border-top: 1px solid #d5dce5;
-    margin-top: 20px;
-}
-
-/* Responsividade para Celulares (Telas menores que 768px) */
-@media (max-width: 768px) {
-    .config-grid {
-        grid-template-columns: 1fr;
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#99b8e2';
+    dropZone.style.background = '#f7faff';
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
     }
+});
 
-    .top-flex {
-        flex-direction: column;
-        gap: 4px;
-        text-align: center;
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+        handleFile(e.target.files[0]);
     }
+});
 
-    .brand h1 {
-        font-size: 18px;
-    }
-
-    .welcome-box h2 {
-        font-size: 13px;
-    }
-
-    .panel-body {
-        padding: 10px;
-    }
-
-    .btn-4shared {
-        max-width: 100%;
+function handleFile(file) {
+    selectedFile = file;
+    fileNameSpan.innerText = `${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
+    fileInfo.style.display = 'block';
+    resultContainer.style.display = 'none';
+    
+    if (isFFmpegReady) {
+        convertBtn.removeAttribute('disabled');
     }
 }
+
+// Inicializar FFmpeg.wasm em background com logs visíveis de carregamento
+async function initFFmpeg() {
+    if (!ffmpeg) {
+        try {
+            progressContainer.style.display = 'block';
+            statusText.innerText = "Carregando motor FFmpeg (Aguarde alguns segundos)...";
+            
+            ffmpeg = new FFmpeg();
+            
+            ffmpeg.on('log', ({ message }) => {
+                console.log("[FFmpeg Log]:", message);
+            });
+
+            ffmpeg.on('progress', ({ progress }) => {
+                // O progresso do ffmpeg vai de 0 a 1 durante a codificação
+                const percent = Math.max(0, Math.min(100, Math.round(progress * 100)));
+                progressBar.style.width = percent + '%';
+                statusText.innerText = `Convertendo vídeo para .AMV... (${percent}%)`;
+            });
+
+            await ffmpeg.load({
+                coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+            });
+
+            isFFmpegReady = true;
+            statusText.innerText = "Motor FFmpeg pronto! Selecione um vídeo para começar.";
+            progressContainer.style.display = 'none';
+
+            if (selectedFile) {
+                convertBtn.removeAttribute('disabled');
+            }
+        } catch (error) {
+            console.error("Erro ao carregar FFmpeg:", error);
+            statusText.innerText = "Erro crítico ao carregar o motor de conversão. Atualize a página.";
+        }
+    }
+}
+
+window.addEventListener('DOMContentLoaded', initFFmpeg);
+
+// Processo de Conversão Robusto para Arquivos Grandes (ex: 97MB)
+convertBtn.addEventListener('click', async () => {
+    if (!selectedFile || !isFFmpegReady) return;
+
+    convertBtn.setAttribute('disabled', 'true');
+    progressContainer.style.display = 'block';
+    resultContainer.style.display = 'none';
+    progressBar.style.width = '0%';
+    statusText.innerText = "Lendo arquivo para a memória do navegador...";
+
+    try {
+        // Passo 1: Ler o arquivo binário com barra de progresso simulada/real para arquivos grandes
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const fileData = new Uint8Array(arrayBuffer);
+        
+        const fileExt = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')) || '.mp4';
+        const inputName = 'input_video' + fileExt;
+        const outputName = 'output.amv';
+
+        statusText.innerText = "Gravando arquivo na memória virtual (Isso pode levar alguns segundos para arquivos grandes)...";
+        progressBar.style.width = '15%';
+
+        // Escrever arquivo na memória virtual do FFmpeg
+        await ffmpeg.writeFile(inputName, fileData);
+        
+        progressBar.style.width = '30%';
+        statusText.innerText = "Configurando parâmetros para AMV...";
+
+        // Capturar opções selecionadas
+        const resolution = document.getElementById('resolution').value;
+        const aspect = document.getElementById('aspect').value;
+        const fps = document.getElementById('fps').value;
+        const audioBitrate = document.getElementById('audioBitrate').value;
+
+        let scaleFilter = `scale=${resolution}:force_original_aspect_ratio=decrease,pad=${resolution}:(ow-iw)/2:(oh-ih)/2`;
+        if (aspect === 'stretch') {
+            scaleFilter = `scale=${resolution}`;
+        }
+
+        statusText.innerText = "Iniciando codificação FFmpeg. Aguarde...";
+
+        // Executar comando FFmpeg otimizado para AMV compatível com players antigos
+        await ffmpeg.exec([
+            '-i', inputName,
+            '-f', 'amv',
+            '-vcodec', 'amv',
+            '-acodec', 'adpcm_amv',
+            '-s', resolution,
+            '-r', fps,
+            '-ar', '22050',
+            '-ac', '1',
+            '-b:v', '600k',
+            '-b:a', audioBitrate,
+            '-vf', scaleFilter,
+            outputName
+        ]);
+
+        statusText.innerText = "Finalizando e gerando link de download...";
+        progressBar.style.width = '95%';
+
+        // Ler o arquivo gerado
+        const data = await ffmpeg.readFile(outputName);
+        
+        // Criar link de download seguro
+        const blob = new Blob([data.buffer], { type: 'video/amv' });
+        const url = URL.createObjectURL(blob);
+        
+        downloadLink.href = url;
+        const baseName = selectedFile.name.substring(0, selectedFile.name.lastIndexOf('.')) || 'video';
+        downloadLink.download = `${baseName}_player.amv`;
+
+        progressContainer.style.display = 'none';
+        resultContainer.style.display = 'block';
+
+    } catch (error) {
+        console.error("Erro durante a conversão:", error);
+        statusText.innerText = "Erro ao converter o vídeo. O formato pode não ser suportado ou a memória foi excedida.";
+    } finally {
+        convertBtn.removeAttribute('disabled');
+    }
+});
