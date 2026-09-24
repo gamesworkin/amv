@@ -1,0 +1,338 @@
+/* Estética Inspirada no 4shared (Versão Clássica 2009) */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, Tahoma, Verdana, sans-serif;
+    background-color: #eef2f7;
+    color: #333333;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.container {
+    width: 960px;
+    margin: 0 auto;
+}
+
+/* Top Bar */
+#top-bar {
+    background: linear-gradient(to bottom, #2b62b3, #1a4585);
+    border-bottom: 1px solid #112d57;
+    color: #ffffff;
+    padding: 6px 0;
+    font-size: 11px;
+}
+
+.top-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.retro-badge {
+    background-color: #ff9900;
+    color: #fff;
+    padding: 1px 5px;
+    font-size: 9px;
+    font-weight: bold;
+    border-radius: 3px;
+    margin-left: 5px;
+}
+
+/* Header */
+#header {
+    background: #ffffff;
+    border-bottom: 1px solid #d5dce5;
+    padding: 15px 0;
+}
+
+.header-flex {
+    display: flex;
+    align-items: center;
+}
+
+.brand h1 {
+    font-size: 22px;
+    color: #1a4585;
+    font-weight: bold;
+}
+
+.brand h1 span {
+    color: #ff7700;
+}
+
+.tagline {
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+}
+
+/* Navegação */
+#nav-bar {
+    background: #2b62b3;
+    border-bottom: 3px solid #1a4585;
+}
+
+#nav-bar ul {
+    list-style: none;
+    display: flex;
+}
+
+#nav-bar li a {
+    display: block;
+    color: #ffffff;
+    padding: 8px 15px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 11px;
+    border-right: 1px solid #1a4585;
+}
+
+#nav-bar li a:hover, #nav-bar li a.active {
+    background-color: #1a4585;
+}
+
+/* Main Content */
+.main-content {
+    padding: 20px 0;
+}
+
+/* Welcome Box */
+.welcome-box {
+    background: #fff8e8;
+    border: 1px solid #f6d28c;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+.welcome-box h2 {
+    font-size: 14px;
+    color: #b86200;
+    margin-bottom: 4px;
+}
+
+.welcome-box p {
+    font-size: 12px;
+    color: #444;
+}
+
+/* Panel Estilo 4shared */
+.panel {
+    background: #ffffff;
+    border: 1px solid #bcd0ee;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.panel-header {
+    background: linear-gradient(to bottom, #e4edf8, #c8daf4);
+    border-bottom: 1px solid #bcd0ee;
+    padding: 8px 12px;
+}
+
+.panel-header h3 {
+    font-size: 12px;
+    color: #1a4585;
+    font-weight: bold;
+}
+
+.panel-body {
+    padding: 20px;
+}
+
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed #99b8e2;
+    background: #f7faff;
+    padding: 30px;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+}
+
+.drop-zone:hover {
+    background: #eef4fc;
+    border-color: #2b62b3;
+}
+
+.drop-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.drop-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: #1a4585;
+    margin-bottom: 4px;
+}
+
+.drop-sub {
+    font-size: 11px;
+    color: #666;
+}
+
+.file-info {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #2b62b3;
+}
+
+/* Configurações */
+.config-section {
+    border-top: 1px solid #e1e8f0;
+    padding-top: 15px;
+    margin-bottom: 20px;
+}
+
+.config-section h4 {
+    font-size: 12px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.config-item label {
+    display: block;
+    font-size: 11px;
+    font-weight: bold;
+    color: #444;
+    margin-bottom: 4px;
+}
+
+.config-item select {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #bcd0ee;
+    border-radius: 3px;
+    background: #fff;
+    font-size: 11px;
+    color: #333;
+}
+
+/* Ação / Botão 4shared */
+.action-bar {
+    text-align: center;
+}
+
+.btn-4shared {
+    background: linear-gradient(to bottom, #ff9900, #e68500);
+    border: 1px solid #b86200;
+    color: #ffffff;
+    padding: 10px 25px;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.btn-4shared:hover:not(:disabled) {
+    background: linear-gradient(to bottom, #ffaa19, #f08c00);
+}
+
+.btn-4shared:disabled {
+    background: #cccccc;
+    border-color: #999999;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Progresso */
+.progress-container {
+    margin-top: 20px;
+    background: #f4f6fa;
+    border: 1px solid #d0dce8;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+.status-text {
+    font-size: 11px;
+    font-weight: bold;
+    color: #1a4585;
+    margin-bottom: 6px;
+}
+
+.progress-bar-bg {
+    background: #e0e6ef;
+    height: 14px;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #bcd0ee;
+}
+
+.progress-bar-fill {
+    background: linear-gradient(to right, #2b62b3, #4a84dc);
+    width: 0%;
+    height: 100%;
+    transition: width 0.1s;
+}
+
+/* Resultado */
+.result-container {
+    margin-top: 20px;
+    background: #eafaf1;
+    border: 1px solid #a3e4d7;
+    padding: 15px;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.result-container p {
+    font-size: 12px;
+    color: #117a65;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.btn-download {
+    display: inline-block;
+    background: linear-gradient(to bottom, #2ecc71, #27ae60);
+    border: 1px solid #1e8449;
+    color: white;
+    padding: 6px 15px;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 3px;
+}
+
+.btn-download:hover {
+    background: linear-gradient(to bottom, #5ab982, #2ecc71);
+}
+
+/* Disclaimer */
+.disclaimer-box {
+    background: #fdfefe;
+    border: 1px solid #d5dce5;
+    padding: 10px 15px;
+    font-size: 10px;
+    color: #666;
+    border-radius: 4px;
+    text-align: justify;
+}
+
+/* Footer */
+#footer {
+    text-align: center;
+    padding: 15px 0;
+    font-size: 10px;
+    color: #777;
+    border-top: 1px solid #d5dce5;
+    margin-top: 20px;
+}
