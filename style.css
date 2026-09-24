@@ -11,7 +11,7 @@ body {
     color: #333333;
     font-size: 12px;
     line-height: 1.4;
-    overflow-x: hidden; /* Evita qualquer scroll horizontal indesejado */
+    overflow-x: hidden;
 }
 
 .container {
@@ -221,7 +221,7 @@ body {
 
 .config-item select {
     width: 100%;
-    padding: 8px; /* Altura de toque melhorada para mobile */
+    padding: 8px;
     border: 1px solid #bcd0ee;
     border-radius: 3px;
     background: #fff;
@@ -347,7 +347,7 @@ body {
 /* Responsividade para Celulares (Telas menores que 768px) */
 @media (max-width: 768px) {
     .config-grid {
-        grid-template-columns: 1fr; /* Transforma as 2 colunas de configuração em 1 coluna vertical */
+        grid-template-columns: 1fr;
     }
 
     .top-flex {
@@ -369,6 +369,6 @@ body {
     }
 
     .btn-4shared {
-        max-width: 100%; /* Botão ocupa toda a largura útil em telas pequenas */
+        max-width: 100%;
     }
 }
