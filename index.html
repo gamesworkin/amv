@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conversor AMV Workin' - 4shared Style</title>
     <link rel="stylesheet" href="style.css">
-    <!-- FFmpeg.wasm para conversão Client-Side -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+    <!-- FFmpeg UMD Script Estável -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 </head>
 <body>
 
@@ -119,7 +119,7 @@
 
                 <!-- Status e Progresso -->
                 <div id="progressContainer" class="progress-container" style="display: none;">
-                    <div class="status-text" id="statusText">Carregando motor FFmpeg...</div>
+                    <div class="status-text" id="statusText">Aguardando arquivo...</div>
                     <div class="progress-bar-bg">
                         <div id="progressBar" class="progress-bar-fill"></div>
                     </div>
@@ -151,4 +151,3 @@
     <script src="script.js"></script>
 </body>
 </html>
- 
