@@ -35,7 +35,8 @@
     <nav id="nav-bar">
         <div class="container">
             <ul>
-                <li><a href="#" class="active">Conversor de Vídeo</a></li>
+                <li><a href="#" id="navConverter" class="active">Conversor de Vídeo</a></li>
+                <li><a href="#" id="navPlayer">Player</a></li>
                 <li><a href="#" onclick="alert('Ferramenta 100% Client-Side hospedada no GitHub Pages.'); return false;">Sobre</a></li>
             </ul>
         </div>
@@ -43,6 +44,9 @@
 
     <!-- Conteúdo Principal -->
     <main class="container main-content">
+
+      <!-- ============ VISÃO: CONVERSOR ============ -->
+      <section id="view-converter">
 
         <!-- Caixa de Boas-Vindas -->
         <div class="welcome-box">
@@ -135,6 +139,7 @@
                     <p>✅ Conversão concluída com sucesso!</p>
                     <p class="result-size" id="resultSize"></p>
                     <a id="downloadLink" class="btn-download" download="video_convertido.amv">Baixar Arquivo .AMV</a>
+                    <button id="playResultBtn" type="button" class="btn-secondary">▶ Assistir no Player</button>
                 </div>
 
                 <details class="log-details">
@@ -144,6 +149,56 @@
 
             </div>
         </div>
+      </section>
+
+      <!-- ============ VISÃO: PLAYER ============ -->
+      <section id="view-player" style="display:none;">
+
+        <div class="welcome-box">
+            <h2>Player de vídeo .AMV</h2>
+            <p>Assista aos arquivos convertidos nesta sessão (guardados na memória do navegador) ou abra qualquer vídeo do seu computador, em .AMV ou qualquer outro formato.</p>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <h3>Reprodutor</h3>
+            </div>
+            <div class="panel-body">
+
+                <div class="config-section">
+                    <h4>🗂️ Convertidos nesta sessão (memória RAM)</h4>
+                    <ul id="sessionList" class="session-list">
+                        <li class="session-empty">Nenhum vídeo convertido ainda nesta sessão.</li>
+                    </ul>
+                </div>
+
+                <div class="config-section">
+                    <h4>💻 Abrir arquivo do computador</h4>
+                    <div id="player-drop-zone" class="drop-zone">
+                        <div class="drop-icon">🎬</div>
+                        <p class="drop-title">Arraste um vídeo aqui para assistir</p>
+                        <p class="drop-sub">ou clique para selecionar (.amv, .mp4, .avi, .mkv, .mov, .webm, etc.)</p>
+                        <input type="file" id="playerFileInput" accept="video/*,.amv" style="display:none;">
+                    </div>
+                </div>
+
+                <div id="playerStatus" class="status-text player-status" style="display:none;"></div>
+                <div id="playerProgressContainer" class="progress-container" style="display:none;">
+                    <div class="progress-bar-bg">
+                        <div id="playerProgressBar" class="progress-bar-fill"></div>
+                    </div>
+                </div>
+
+                <div class="player-stage">
+                    <video id="videoPlayer" class="video-player" controls playsinline></video>
+                    <p id="nowPlaying" class="now-playing"></p>
+                </div>
+
+                <p class="config-note">Arquivos .AMV não são suportados nativamente pelos navegadores: eles são decodificados aqui mesmo, no seu computador, para poderem ser exibidos. Nada é enviado para servidores.</p>
+
+            </div>
+        </div>
+      </section>
 
         <!-- Disclaimer Legal Solicitado -->
         <div class="disclaimer-box">

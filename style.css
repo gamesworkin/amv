@@ -415,3 +415,74 @@ body {
     white-space: pre-wrap;
     word-break: break-all;
 }
+
+/* --- Player --- */
+.session-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.session-list .session-empty {
+    font-size: 11px;
+    color: #777;
+    padding: 6px 0;
+}
+
+.session-item {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 6px 8px;
+    border-bottom: 1px dotted #ccc;
+    font-size: 11px;
+}
+
+.session-item .session-name {
+    flex: 1;
+    min-width: 160px;
+    word-break: break-all;
+}
+
+.btn-secondary {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-family: inherit;
+    color: #2b62b3;
+    background: #f1f5fb;
+    border: 1px solid #b8cbe6;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-secondary:hover {
+    background: #e2ebf8;
+}
+
+.player-stage {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.video-player {
+    width: 100%;
+    max-width: 640px;
+    background: #000;
+    border: 1px solid #999;
+    border-radius: 4px;
+}
+
+.now-playing {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #555;
+}
+
+.player-status {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #333;
+}

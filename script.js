@@ -225,6 +225,8 @@ convertBtn.addEventListener('click', async () => {
     document.getElementById('resultSize').innerText =
       `Tamanho final: ${(blob.size / (1024 * 1024)).toFixed(2)} MB`;
 
+    addSessionFile(downloadLink.download, blob);
+
     setProgress(100);
     setStatus('Conversão concluída!');
     progressContainer.style.display = 'none';
@@ -241,3 +243,223 @@ convertBtn.addEventListener('click', async () => {
     updateButton();
   }
 });
+
+/* =======================================================
+   PLAYER - reproduz .AMV convertidos (memória RAM) ou
+   qualquer vídeo do computador do usuário.
+   ======================================================= */
+
+const navConverter = document.getElementById('navConverter');
+const navPlayer = document.getElementById('navPlayer');
+const viewConverter = document.getElementById('view-converter');
+const viewPlayer = document.getElementById('view-player');
+const sessionList = document.getElementById('sessionList');
+const playerDropZone = document.getElementById('player-drop-zone');
+const playerFileInput = document.getElementById('playerFileInput');
+const videoPlayer = document.getElementById('videoPlayer');
+const nowPlaying = document.getElementById('nowPlaying');
+const playerStatus = document.getElementById('playerStatus');
+const playerProgressContainer = document.getElementById('playerProgressContainer');
+const playerProgressBar = document.getElementById('playerProgressBar');
+const playResultBtn = document.getElementById('playResultBtn');
+
+// Arquivos convertidos nesta sessão (ficam apenas na memória do navegador)
+const sessionFiles = [];
+let playbackUrl = null;
+let isDecoding = false;
+
+function showView(which) {
+  const isPlayer = which === 'player';
+  viewPlayer.style.display = isPlayer ? 'block' : 'none';
+  viewConverter.style.display = isPlayer ? 'none' : 'block';
+  navPlayer.classList.toggle('active', isPlayer);
+  navConverter.classList.toggle('active', !isPlayer);
+  if (!isPlayer) videoPlayer.pause();
+  window.scrollTo(0, 0);
+}
+
+navConverter.addEventListener('click', (e) => { e.preventDefault(); showView('converter'); });
+navPlayer.addEventListener('click', (e) => { e.preventDefault(); showView('player'); });
+
+function setPlayerStatus(msg) {
+  if (!msg) { playerStatus.style.display = 'none'; return; }
+  playerStatus.style.display = 'block';
+  playerStatus.innerText = msg;
+}
+function setPlayerProgress(p) {
+  playerProgressContainer.style.display = p === null ? 'none' : 'block';
+  if (p !== null) playerProgressBar.style.width = Math.max(0, Math.min(100, p)) + '%';
+}
+
+/* ---------- lista de convertidos (RAM) ---------- */
+function addSessionFile(name, blob) {
+  sessionFiles.push({ name: name, blob: blob, size: blob.size });
+  renderSessionList();
+}
+
+function renderSessionList() {
+  sessionList.innerHTML = '';
+  if (!sessionFiles.length) {
+    const li = document.createElement('li');
+    li.className = 'session-empty';
+    li.innerText = 'Nenhum vídeo convertido ainda nesta sessão.';
+    sessionList.appendChild(li);
+    return;
+  }
+  sessionFiles.forEach((item, i) => {
+    const li = document.createElement('li');
+    li.className = 'session-item';
+
+    const label = document.createElement('span');
+    label.className = 'session-name';
+    label.innerText = `${item.name} — ${(item.size / (1024 * 1024)).toFixed(2)} MB`;
+
+    const play = document.createElement('button');
+    play.type = 'button';
+    play.className = 'btn-secondary';
+    play.innerText = '▶ Reproduzir';
+    play.addEventListener('click', () => playBlob(item.blob, item.name));
+
+    const dl = document.createElement('a');
+    dl.className = 'btn-secondary';
+    dl.innerText = '⬇ Baixar';
+    dl.href = URL.createObjectURL(item.blob);
+    dl.download = item.name;
+
+    li.appendChild(label);
+    li.appendChild(play);
+    li.appendChild(dl);
+    sessionList.appendChild(li);
+  });
+}
+
+if (playResultBtn) {
+  playResultBtn.addEventListener('click', () => {
+    const last = sessionFiles[sessionFiles.length - 1];
+    showView('player');
+    if (last) playBlob(last.blob, last.name);
+  });
+}
+
+/* ---------- abrir arquivo do computador ---------- */
+playerDropZone.addEventListener('click', () => playerFileInput.click());
+['dragover', 'dragenter'].forEach((ev) =>
+  playerDropZone.addEventListener(ev, (e) => {
+    e.preventDefault();
+    playerDropZone.classList.add('dragging');
+  })
+);
+['dragleave', 'dragend'].forEach((ev) =>
+  playerDropZone.addEventListener(ev, () => playerDropZone.classList.remove('dragging'))
+);
+playerDropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  playerDropZone.classList.remove('dragging');
+  if (e.dataTransfer.files && e.dataTransfer.files.length) playBlob(e.dataTransfer.files[0], e.dataTransfer.files[0].name);
+});
+playerFileInput.addEventListener('change', (e) => {
+  if (e.target.files && e.target.files.length) playBlob(e.target.files[0], e.target.files[0].name);
+});
+
+/* ---------- reprodução ---------- */
+function setSource(url, label) {
+  if (playbackUrl) URL.revokeObjectURL(playbackUrl);
+  playbackUrl = url;
+  videoPlayer.src = url;
+  videoPlayer.style.display = 'block';
+  nowPlaying.innerText = label ? 'Reproduzindo: ' + label : '';
+  videoPlayer.play().catch(() => {});
+}
+
+function tryNativePlayback(blob) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const probe = document.createElement('video');
+    let done = false;
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (!ok) URL.revokeObjectURL(url);
+      resolve(ok ? url : null);
+    };
+    probe.preload = 'metadata';
+    probe.onloadedmetadata = () => finish(true);
+    probe.onerror = () => finish(false);
+    probe.src = url;
+    const timer = setTimeout(() => finish(false), 6000);
+  });
+}
+
+async function playBlob(blob, name) {
+  if (isDecoding) return;
+  const lower = (name || '').toLowerCase();
+  const isAmv = lower.endsWith('.amv');
+
+  setPlayerStatus('');
+  setPlayerProgress(null);
+
+  if (!isAmv) {
+    setPlayerStatus('Abrindo vídeo...');
+    const url = await tryNativePlayback(blob);
+    if (url) {
+      setPlayerStatus('');
+      setSource(url, name);
+      return;
+    }
+  }
+
+  // .AMV (ou formato não suportado pelo navegador): decodifica localmente para MP4
+  isDecoding = true;
+  try {
+    setPlayerStatus('Preparando o vídeo para exibição (decodificando no seu computador)...');
+    setPlayerProgress(5);
+    if (!isFFmpegReady && !(await initFFmpeg())) {
+      setPlayerStatus('Não foi possível carregar o motor de vídeo. Verifique sua conexão e recarregue a página.');
+      setPlayerProgress(null);
+      return;
+    }
+
+    const dot = lower.lastIndexOf('.');
+    const ext = dot > -1 ? lower.slice(dot) : '.amv';
+    const inName = 'play_input' + ext;
+    const outName = 'play_output.mp4';
+
+    await ffmpeg.writeFile(inName, await fetchFile(blob));
+    setPlayerProgress(25);
+
+    const baseArgs = [
+      '-i', inName,
+      '-c:v', 'libx264',
+      '-preset', 'ultrafast',
+      '-pix_fmt', 'yuv420p',
+      '-movflags', '+faststart',
+    ];
+
+    let code = await ffmpeg.exec(baseArgs.concat(['-c:a', 'aac', '-ac', '1', '-ar', '44100', '-y', outName]));
+    if (code !== 0) {
+      code = await ffmpeg.exec(baseArgs.concat(['-an', '-y', outName]));
+    }
+    if (code !== 0) throw new Error('não foi possível decodificar este arquivo');
+
+    const data = await ffmpeg.readFile(outName);
+    if (!data || data.length === 0) throw new Error('saída vazia');
+
+    setPlayerProgress(100);
+    const mp4 = new Blob([data.buffer], { type: 'video/mp4' });
+    setPlayerStatus('');
+    setPlayerProgress(null);
+    setSource(URL.createObjectURL(mp4), name);
+
+    try { await ffmpeg.deleteFile(inName); } catch (e) {}
+    try { await ffmpeg.deleteFile(outName); } catch (e) {}
+  } catch (err) {
+    console.error(err);
+    setPlayerProgress(null);
+    setPlayerStatus('Não foi possível reproduzir este arquivo: ' + (err && err.message ? err.message : 'erro desconhecido'));
+  } finally {
+    isDecoding = false;
+  }
+}
+
+renderSessionList();
