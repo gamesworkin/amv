@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conversor AMV Workin' - 4shared Style</title>
+    <meta name="description" content="Converta qualquer vídeo para .AMV direto no navegador, compatível com players MP4 antigos.">
     <link rel="stylesheet" href="style.css">
-    <!-- FFmpeg UMD Script Estável -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 </head>
 <body>
 
@@ -44,7 +43,7 @@
 
     <!-- Conteúdo Principal -->
     <main class="container main-content">
-        
+
         <!-- Caixa de Boas-Vindas -->
         <div class="welcome-box">
             <h2>Tem um MP4 antigo e não tem onde achar os vídeos pra ele?</h2>
@@ -57,12 +56,12 @@
                 <h3>Área de Upload e Configuração</h3>
             </div>
             <div class="panel-body">
-                
+
                 <!-- Área de Drag and Drop -->
                 <div id="drop-zone" class="drop-zone">
                     <div class="drop-icon">📥</div>
                     <p class="drop-title">Arraste seu arquivo de vídeo aqui</p>
-                    <p class="drop-sub">ou clique para selecionar do computador (MP4, AVI, MKV, WebM, etc.)</p>
+                    <p class="drop-sub">ou clique para selecionar do computador (MP4, AVI, MKV, WebM, MOV, etc.)</p>
                     <input type="file" id="fileInput" accept="video/*" style="display: none;">
                     <div id="fileInfo" class="file-info" style="display: none;">
                         <strong>Arquivo selecionado:</strong> <span id="fileName"></span>
@@ -72,7 +71,7 @@
                 <!-- Configurações Avançadas de AMV -->
                 <div class="config-section">
                     <h4>⚙️ Configurações Essenciais para AMV</h4>
-                    
+
                     <div class="config-grid">
                         <div class="config-item">
                             <label for="resolution">Resolução de Tela:</label>
@@ -81,6 +80,7 @@
                                 <option value="128x128">128 x 128 (Tela Quadrada)</option>
                                 <option value="128x96">128 x 96 (Baixa Resolução / Mini)</option>
                                 <option value="220x176">220 x 176 (Telas Maiores 2.4")</option>
+                                <option value="320x240">320 x 240 (Players mais novos)</option>
                             </select>
                         </div>
 
@@ -95,26 +95,31 @@
                         <div class="config-item">
                             <label for="fps">Taxa de Quadros (FPS):</label>
                             <select id="fps">
-                                <option value="16" selected>16 fps (Recomendado para AMV fluído)</option>
-                                <option value="12">12 fps (Compatibilidade Máxima)</option>
-                                <option value="20">20 fps (Experimental)</option>
+                                <option value="15" selected>15 fps (Recomendado para AMV fluído)</option>
+                                <option value="10">10 fps (Compatibilidade máxima / arquivo menor)</option>
+                                <option value="14">14 fps</option>
+                                <option value="18">18 fps</option>
+                                <option value="21">21 fps</option>
+                                <option value="25">25 fps (Mais fluído, arquivo maior)</option>
+                                <option value="30">30 fps (Experimental)</option>
                             </select>
                         </div>
 
                         <div class="config-item">
-                            <label for="audioBitrate">Qualidade de Áudio:</label>
-                            <select id="audioBitrate">
-                                <option value="32k" selected>32 kbps (Padrão AMV econômico)</option>
-                                <option value="64k">64 kbps (Alta qualidade)</option>
-                                <option value="16k">16 kbps (Arquivos bem leves)</option>
+                            <label for="quality">Qualidade de Imagem:</label>
+                            <select id="quality">
+                                <option value="6" selected>Padrão (equilíbrio tamanho/qualidade)</option>
+                                <option value="3">Alta (arquivo maior)</option>
+                                <option value="10">Econômica (arquivo bem leve)</option>
                             </select>
                         </div>
                     </div>
+                    <p class="config-note">O áudio do formato AMV é sempre mono em 22.050 Hz — por isso apenas as taxas de quadros compatíveis são oferecidas.</p>
                 </div>
 
                 <!-- Botão de Ação -->
                 <div class="action-bar">
-                    <button id="convertBtn" class="btn-4shared" disabled>Converter para .AMV</button>
+                    <button id="convertBtn" class="btn-4shared" disabled>Carregando motor...</button>
                 </div>
 
                 <!-- Status e Progresso -->
@@ -128,8 +133,14 @@
                 <!-- Resultado de Download -->
                 <div id="resultContainer" class="result-container" style="display: none;">
                     <p>✅ Conversão concluída com sucesso!</p>
+                    <p class="result-size" id="resultSize"></p>
                     <a id="downloadLink" class="btn-download" download="video_convertido.amv">Baixar Arquivo .AMV</a>
                 </div>
+
+                <details class="log-details">
+                    <summary>Registro técnico (avançado)</summary>
+                    <pre id="logBox" class="log-box" style="display:none;"></pre>
+                </details>
 
             </div>
         </div>
@@ -148,7 +159,9 @@
         </div>
     </footer>
 
+    <!-- Motor FFmpeg.wasm 0.12 (não exige SharedArrayBuffer) -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
- 
