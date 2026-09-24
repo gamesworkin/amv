@@ -1,5 +1,9 @@
-const { FFmpeg } = FFmpegWASM;
-let ffmpeg = null;
+const { createFFmpeg, fetchFile } = FFmpeg;
+const ffmpeg = createFFmpeg({
+    log: true,
+    corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
+});
+
 let selectedFile = null;
 let isFFmpegReady = false;
 
@@ -55,30 +59,15 @@ function handleFile(file) {
     }
 }
 
-// Inicializar FFmpeg.wasm em background com logs visíveis de carregamento
+// Inicializar FFmpeg sob demanda ou de forma assíncrona limpa
 async function initFFmpeg() {
-    if (!ffmpeg) {
+    if (!isFFmpegReady) {
         try {
-            progressContainer.style.display = 'block';
-            statusText.innerText = "Carregando motor FFmpeg (Aguarde alguns segundos)...";
-            
-            ffmpeg = new FFmpeg();
-            
-            ffmpeg.on('log', ({ message }) => {
-                console.log("[FFmpeg Log]:", message);
-            });
-
-            ffmpeg.on('progress', ({ progress }) => {
-                // O progresso do ffmpeg vai de 0 a 1 durante a codificação
-                const percent = Math.max(0, Math.min(100, Math.round(progress * 100)));
-                progressBar.style.width = percent + '%';
-                statusText.innerText = `Convertendo vídeo para .AMV... (${percent}%)`;
-            });
-
-            await ffmpeg.load({
-                coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
-            });
-
+            if (!ffmpeg.isLoaded()) {
+                progressContainer.style.display = 'block';
+                statusText.innerText = "Carregando motor FFmpeg (Aguarde alguns segundos)...";
+                await ffmpeg.load();
+            }
             isFFmpegReady = true;
             statusText.innerText = "Motor FFmpeg pronto! Selecione um vídeo para começar.";
             progressContainer.style.display = 'none';
@@ -88,40 +77,51 @@ async function initFFmpeg() {
             }
         } catch (error) {
             console.error("Erro ao carregar FFmpeg:", error);
-            statusText.innerText = "Erro crítico ao carregar o motor de conversão. Atualize a página.";
+            statusText.innerText = "Erro ao carregar motor de conversão. Verifique sua conexão.";
         }
     }
 }
 
-window.addEventListener('DOMContentLoaded', initFFmpeg);
+// Carregar em background logo após o carregamento da página sem travar a interface
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initFFmpeg, 500);
+});
 
 // Processo de Conversão Robusto para Arquivos Grandes (ex: 97MB)
 convertBtn.addEventListener('click', async () => {
-    if (!selectedFile || !isFFmpegReady) return;
+    if (!selectedFile) return;
 
     convertBtn.setAttribute('disabled', 'true');
     progressContainer.style.display = 'block';
     resultContainer.style.display = 'none';
     progressBar.style.width = '0%';
-    statusText.innerText = "Lendo arquivo para a memória do navegador...";
+    statusText.innerText = "Carregando motor FFmpeg para conversão...";
 
     try {
-        // Passo 1: Ler o arquivo binário com barra de progresso simulada/real para arquivos grandes
-        const arrayBuffer = await selectedFile.arrayBuffer();
-        const fileData = new Uint8Array(arrayBuffer);
-        
+        if (!ffmpeg.isLoaded()) {
+            await ffmpeg.load();
+        }
+        isFFmpegReady = true;
+
+        statusText.innerText = "Lendo arquivo para a memória do navegador...";
+        progressBar.style.width = '20%';
+
         const fileExt = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')) || '.mp4';
         const inputName = 'input_video' + fileExt;
         const outputName = 'output.amv';
 
-        statusText.innerText = "Gravando arquivo na memória virtual (Isso pode levar alguns segundos para arquivos grandes)...";
-        progressBar.style.width = '15%';
+        // Escrever arquivo na memória virtual usando o fetchFile nativo do FFmpeg 0.11
+        ffmpeg.FS('writeFile', inputName, await fetchFile(selectedFile));
 
-        // Escrever arquivo na memória virtual do FFmpeg
-        await ffmpeg.writeFile(inputName, fileData);
-        
-        progressBar.style.width = '30%';
-        statusText.innerText = "Configurando parâmetros para AMV...";
+        progressBar.style.width = '40%';
+        statusText.innerText = "Configurando parâmetros e convertendo para .AMV...";
+
+        // Configurar listener de progresso de conversão
+        ffmpeg.setProgress(({ ratio }) => {
+            const percent = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+            progressBar.style.width = percent + '%';
+            statusText.innerText = `Convertendo vídeo para .AMV... (${percent}%)`;
+        });
 
         // Capturar opções selecionadas
         const resolution = document.getElementById('resolution').value;
@@ -134,10 +134,8 @@ convertBtn.addEventListener('click', async () => {
             scaleFilter = `scale=${resolution}`;
         }
 
-        statusText.innerText = "Iniciando codificação FFmpeg. Aguarde...";
-
         // Executar comando FFmpeg otimizado para AMV compatível com players antigos
-        await ffmpeg.exec([
+        await ffmpeg.run(
             '-i', inputName,
             '-f', 'amv',
             '-vcodec', 'amv',
@@ -150,13 +148,13 @@ convertBtn.addEventListener('click', async () => {
             '-b:a', audioBitrate,
             '-vf', scaleFilter,
             outputName
-        ]);
+        );
 
         statusText.innerText = "Finalizando e gerando link de download...";
         progressBar.style.width = '95%';
 
-        // Ler o arquivo gerado
-        const data = await ffmpeg.readFile(outputName);
+        // Ler o arquivo gerado da memória virtual
+        const data = ffmpeg.FS('readFile', outputName);
         
         // Criar link de download seguro
         const blob = new Blob([data.buffer], { type: 'video/amv' });
