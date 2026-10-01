@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conversor AMV Workin' - 4shared Style</title>
     <link rel="icon" type="image/x-icon" href="fav.ico">
-    <meta name="description" content="Converta qualquer vídeo para .AMV direto no navegador, compatível com players MP4 antigos.">
+    <meta name="description" content="Converta qualquer vídeo para .AMV ou .AVI direto no navegador, compatível com players MP4 antigos.">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -38,7 +38,7 @@
             <ul>
                 <li><a href="#" id="navConverter" class="active">Conversor de Vídeo</a></li>
                 <li><a href="#" id="navPlayer">Player</a></li>
-                <li><a href="#" onclick="alert('Ferramenta 100% Client-Side para conversão de vídeos para formato .AMV de MP4 Players.'); return false;">Sobre</a></li>
+                <li><a href="#" onclick="alert('Ferramenta 100% Client-Side para conversão de vídeos para os formatos .AMV e .AVI de MP4 Players.'); return false;">Sobre</a></li>
             </ul>
         </div>
     </nav>
@@ -52,7 +52,7 @@
         <!-- Caixa de Boas-Vindas -->
         <div class="welcome-box">
             <h2>Tem um MP4 antigo e não tem onde achar os vídeos pra ele?</h2>
-            <p>Então joga qualquer formato de vídeo aqui e converte ele para seu MP4 / AMV com total compatibilidade!</p>
+            <p>Então joga qualquer formato de vídeo aqui e converte ele para seu MP4 player em AMV ou AVI com total compatibilidade!</p>
         </div>
 
         <!-- Painel Principal de Conversão -->
@@ -75,9 +75,17 @@
 
                 <!-- Configurações Avançadas de AMV -->
                 <div class="config-section">
-                    <h4>⚙️ Configurações Essenciais para AMV</h4>
+                    <h4>⚙️ Configurações Essenciais para AMV / AVI</h4>
 
                     <div class="config-grid">
+                        <div class="config-item">
+                            <label for="format">Formato de Saída:</label>
+                            <select id="format">
+                                <option value="amv" selected>.AMV (MP4 players clássicos)</option>
+                                <option value="avi">.AVI (MP4 players novos - MJPEG)</option>
+                            </select>
+                        </div>
+
                         <div class="config-item">
                             <label for="resolution">Resolução de Tela:</label>
                             <select id="resolution">
@@ -119,7 +127,7 @@
                             </select>
                         </div>
                     </div>
-                    <p class="config-note">O áudio do formato AMV é sempre mono em 22.050 Hz — por isso apenas as taxas de quadros compatíveis são oferecidas.</p>
+                    <p class="config-note">O áudio é sempre mono em 22.050 Hz. O .AVI usa vídeo MJPEG + áudio IMA ADPCM, a mesma base do AMV, garantindo compatibilidade com os MP4 players que leem AVI.</p>
                 </div>
 
                 <!-- Botão de Ação -->
@@ -139,7 +147,7 @@
                 <div id="resultContainer" class="result-container" style="display: none;">
                     <p>✅ Conversão concluída com sucesso!</p>
                     <p class="result-size" id="resultSize"></p>
-                    <a id="downloadLink" class="btn-download" download="video_convertido.amv">Baixar Arquivo .AMV</a>
+                    <a id="downloadLink" class="btn-download" download="video_convertido.amv">Baixar Arquivo</a>
                     <button id="playResultBtn" type="button" class="btn-secondary">▶ Assistir no Player</button>
                 </div>
 

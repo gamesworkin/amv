@@ -51,7 +51,7 @@ function updateButton() {
   convertBtn.disabled = !(selectedFile && isFFmpegReady && !isConverting);
   if (isConverting) convertBtn.innerText = 'Convertendo...';
   else if (!isFFmpegReady) convertBtn.innerText = 'Carregando motor...';
-  else convertBtn.innerText = 'Converter para .AMV';
+  else convertBtn.innerText = 'Converter para .' + document.getElementById('format').value.toUpperCase();
 }
 
 /* ---------- seleção de arquivo ---------- */
@@ -134,6 +134,8 @@ async function initFFmpeg() {
   return isFFmpegReady;
 }
 
+document.getElementById('format').addEventListener('change', updateButton);
+
 window.addEventListener('DOMContentLoaded', () => {
   updateButton();
   setTimeout(initFFmpeg, 300);
@@ -157,7 +159,8 @@ convertBtn.addEventListener('click', async () => {
   const dot = selectedFile.name.lastIndexOf('.');
   const ext = dot > -1 ? selectedFile.name.slice(dot) : '.mp4';
   const inputName = 'input' + ext.toLowerCase();
-  const outputName = 'output.amv';
+  const format = document.getElementById('format').value; // amv | avi
+  const outputName = 'output.' + format;
 
   try {
     await ffmpeg.writeFile(inputName, await fetchFile(selectedFile));
@@ -180,36 +183,66 @@ convertBtn.addEventListener('click', async () => {
     // 22050 exatamente (10, 14, 15, 18, 21, 25, 30) -> block_size = 22050/fps.
     const blockSize = Math.round(22050 / Number(fps));
 
-    const args = [
-      '-i', inputName,
-      '-vf', vf,
-      '-c:v', 'amv',
-      '-q:v', quality,
-      '-pix_fmt', 'yuvj420p',
-      '-c:a', 'adpcm_ima_amv',
-      '-ar', '22050',
-      '-ac', '1',
-      '-block_size', String(blockSize),
-      '-f', 'amv',
-      '-y', outputName,
-    ];
-
-    let code = await ffmpeg.exec(args);
-
-    if (code !== 0) {
-      // Fallback: alguns arquivos falham no mux AMV com áudio; tenta sem áudio.
-      log('>> Tentando novamente sem áudio (fallback)...');
-      setStatus('Ajustando parâmetros e tentando novamente...');
-      code = await ffmpeg.exec([
+    let code;
+    if (format === 'avi') {
+      // AVI compatível com MP4 players: mesmas características do AMV
+      // (mesma resolução/fps, vídeo MJPEG, áudio mono 22050 Hz).
+      const vBase = [
+        '-i', inputName,
+        '-vf', vf,
+        '-c:v', 'mjpeg',
+        '-q:v', quality,
+        '-pix_fmt', 'yuvj420p',
+        '-vtag', 'MJPG',
+      ];
+      code = await ffmpeg.exec(vBase.concat([
+        '-c:a', 'adpcm_ima_wav', '-ar', '22050', '-ac', '1',
+        '-f', 'avi', '-y', outputName,
+      ]));
+      if (code !== 0) {
+        log('>> Tentando novamente com áudio PCM (fallback)...');
+        setStatus('Ajustando parâmetros e tentando novamente...');
+        code = await ffmpeg.exec(vBase.concat([
+          '-c:a', 'pcm_s16le', '-ar', '22050', '-ac', '1',
+          '-f', 'avi', '-y', outputName,
+        ]));
+      }
+      if (code !== 0) {
+        log('>> Tentando novamente sem áudio (fallback)...');
+        code = await ffmpeg.exec(vBase.concat(['-an', '-f', 'avi', '-y', outputName]));
+      }
+    } else {
+      const args = [
         '-i', inputName,
         '-vf', vf,
         '-c:v', 'amv',
-        '-q:v', '6',
+        '-q:v', quality,
         '-pix_fmt', 'yuvj420p',
-        '-an',
+        '-c:a', 'adpcm_ima_amv',
+        '-ar', '22050',
+        '-ac', '1',
+        '-block_size', String(blockSize),
         '-f', 'amv',
         '-y', outputName,
-      ]);
+      ];
+
+      code = await ffmpeg.exec(args);
+
+      if (code !== 0) {
+        // Fallback: alguns arquivos falham no mux AMV com áudio; tenta sem áudio.
+        log('>> Tentando novamente sem áudio (fallback)...');
+        setStatus('Ajustando parâmetros e tentando novamente...');
+        code = await ffmpeg.exec([
+          '-i', inputName,
+          '-vf', vf,
+          '-c:v', 'amv',
+          '-q:v', '6',
+          '-pix_fmt', 'yuvj420p',
+          '-an',
+          '-f', 'amv',
+          '-y', outputName,
+        ]);
+      }
     }
 
     if (code !== 0) throw new Error('FFmpeg retornou código ' + code);
@@ -217,11 +250,12 @@ convertBtn.addEventListener('click', async () => {
     const data = await ffmpeg.readFile(outputName);
     if (!data || data.length === 0) throw new Error('Arquivo de saída vazio');
 
-    const blob = new Blob([data.buffer], { type: 'video/x-amv' });
+    const blob = new Blob([data.buffer], { type: format === 'avi' ? 'video/x-msvideo' : 'video/x-amv' });
     lastUrl = URL.createObjectURL(blob);
     downloadLink.href = lastUrl;
     const baseName = dot > -1 ? selectedFile.name.slice(0, dot) : selectedFile.name;
-    downloadLink.download = `${baseName}_player.amv`;
+    downloadLink.download = `${baseName}_player.${format}`;
+    downloadLink.innerText = `Baixar Arquivo .${format.toUpperCase()}`;
     document.getElementById('resultSize').innerText =
       `Tamanho final: ${(blob.size / (1024 * 1024)).toFixed(2)} MB`;
 
