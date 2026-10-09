@@ -21,6 +21,8 @@ let isLoading = false;
 let isConverting = false;
 let lastUrl = null;
 let durationSec = 0;
+let isDetecting = false;
+let detectedCrop = null;
 
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('fileInput');
@@ -91,6 +93,11 @@ function handleFile(file) {
 
 /* ---------- carregamento do FFmpeg ---------- */
 ffmpeg.on('log', ({ message }) => {
+  if (isDetecting) {
+    const c = message.match(/crop=(\d+):(\d+):(\d+):(\d+)/);
+    if (c) detectedCrop = c.slice(1).map(Number);
+    return;
+  }
   log(message);
   const m = /Duration:\s*(\d+):(\d+):(\d+\.\d+)/.exec(message);
   if (m) durationSec = (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]);
@@ -104,7 +111,7 @@ ffmpeg.on('log', ({ message }) => {
 });
 
 ffmpeg.on('progress', ({ progress }) => {
-  if (!isConverting || durationSec > 0) return;
+  if (!isConverting || isDetecting || durationSec > 0) return;
   const pct = 10 + Math.round(progress * 85);
   setProgress(pct);
   setStatus(`Convertendo vídeo... (${Math.min(99, pct)}%)`);
@@ -145,6 +152,49 @@ async function initFFmpeg() {
 
 document.getElementById('format').addEventListener('change', updateButton);
 
+/* ---------- opção "Remover faixas pretas" (só com Esticar) ---------- */
+const aspectSel = document.getElementById('aspect');
+const cropBarsWrap = document.getElementById('cropBarsWrap');
+const cropBarsChk = document.getElementById('cropBars');
+function updateCropOption() {
+  const show = aspectSel.value === 'stretch';
+  cropBarsWrap.style.display = show ? 'block' : 'none';
+  if (!show) cropBarsChk.checked = false;
+}
+aspectSel.addEventListener('change', updateCropOption);
+updateCropOption();
+
+// Analisa trechos do vídeo com cropdetect e retorna "crop=w:h:x:y" ou ''.
+async function detectBlackBars(inputName) {
+  detectedCrop = null;
+  isDetecting = true;
+  let best = null;
+  try {
+    const starts = durationSec > 30
+      ? [durationSec * 0.2, durationSec * 0.5, durationSec * 0.8]
+      : [0];
+    for (const ss of starts) {
+      detectedCrop = null;
+      await ffmpeg.exec([
+        '-ss', String(Math.floor(ss)), '-i', inputName, '-t', '6',
+        '-vf', 'cropdetect=limit=24:round=2:reset=0', '-an', '-f', 'null', '-',
+      ]);
+      if (detectedCrop) {
+        const [cw, ch, cx, cy] = detectedCrop;
+        // fica com a maior área (evita cortar demais em cenas escuras)
+        if (!best || cw * ch > best[0] * best[1]) best = [cw, ch, cx, cy];
+      }
+    }
+  } catch (e) {
+    console.warn('cropdetect falhou', e);
+  } finally {
+    isDetecting = false;
+  }
+  if (!best || best[0] < 16 || best[1] < 16) return '';
+  log(`>> Faixas pretas detectadas: recortando para ${best[0]}x${best[1]} (x=${best[2]}, y=${best[3]})`);
+  return `crop=${best[0]}:${best[1]}:${best[2]}:${best[3]},`;
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   updateButton();
   setTimeout(initFFmpeg, 300);
@@ -180,9 +230,20 @@ convertBtn.addEventListener('click', async () => {
     const fps = document.getElementById('fps').value;
     const quality = document.getElementById('quality').value;
 
+    let crop = '';
+    if (stretch && cropBarsChk.checked) {
+      if (durationSec <= 0) {
+        // obtém a duração (o log de "Duration" é lido pelo listener)
+        try { await ffmpeg.exec(['-i', inputName]); } catch (e) {}
+      }
+      setStatus('Detectando faixas pretas...');
+      crop = await detectBlackBars(inputName);
+      if (!crop) log('>> Nenhuma faixa preta detectada.');
+    }
+
     // O codec AMV exige dimensões exatas; com "manter proporção" usamos padding.
     const vf = stretch
-      ? `scale=${w}:${h},fps=${fps},format=yuvj420p`
+      ? `${crop}scale=${w}:${h},fps=${fps},format=yuvj420p`
       : `scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black,fps=${fps},format=yuvj420p`;
 
     setStatus('Convertendo vídeo...');

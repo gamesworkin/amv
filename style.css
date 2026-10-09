@@ -486,3 +486,14 @@ body {
     font-size: 11px;
     color: #333;
 }
+
+/* Opção Remover faixas pretas */
+.crop-bars-option {
+    margin-top: 6px;
+    font-weight: bold;
+    font-size: 11px;
+    color: #1a4585;
+    cursor: pointer;
+}
+.crop-bars-option input { vertical-align: middle; margin-right: 4px; }
+.crop-bars-option small { display: block; font-weight: normal; color: #666; margin-left: 18px; }
