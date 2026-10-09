@@ -73,6 +73,40 @@
                     </div>
                 </div>
 
+                <!-- Ajustar duração -->
+                <div id="trimSection" class="config-section trim-section" style="display:none;">
+                    <h4>✂️ Ajustar duração</h4>
+                    <div class="trim-preview">
+                        <video id="trimVideo" class="video-player trim-video" controls preload="metadata"></video>
+                        <p id="trimNoPreview" class="trim-note" style="display:none;">Este formato não tem prévia no navegador, mas o corte funciona normalmente.</p>
+                    </div>
+                    <div class="trim-grid">
+                        <div class="config-item">
+                            <label for="trimStart">Cortar do início:</label>
+                            <input type="range" id="trimStartRange" min="0" max="0" step="1" value="0">
+                            <div class="trim-inputs">
+                                <input type="number" id="trimStartMin" min="0" value="0"> min
+                                <input type="number" id="trimStartSec" min="0" max="59" value="0"> s
+                                <button type="button" id="trimSetStart" class="btn-secondary">Usar posição atual</button>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <label for="trimEnd">Cortar do fim:</label>
+                            <input type="range" id="trimEndRange" min="0" max="0" step="1" value="0">
+                            <div class="trim-inputs">
+                                <input type="number" id="trimEndMin" min="0" value="0"> min
+                                <input type="number" id="trimEndSec" min="0" max="59" value="0"> s
+                                <button type="button" id="trimSetEnd" class="btn-secondary">Usar posição atual</button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="trim-summary">Duração original: <strong id="trimOrig">--:--</strong> &bull; Trecho mantido: <strong id="trimRange">--:--</strong> &bull; Nova duração: <strong id="trimNew">--:--</strong></p>
+                    <div class="trim-actions">
+                        <button type="button" id="trimPreviewBtn" class="btn-secondary">▶ Ver trecho cortado</button>
+                        <button type="button" id="trimResetBtn" class="btn-secondary">Desfazer corte</button>
+                    </div>
+                </div>
+
                 <!-- Configurações Avançadas de AMV -->
                 <div class="config-section">
                     <h4>⚙️ Configurações Essenciais para AMV / AVI</h4>

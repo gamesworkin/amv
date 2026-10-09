@@ -88,6 +88,7 @@ function handleFile(file) {
   fileInfo.style.display = 'block';
   resultContainer.style.display = 'none';
   durationSec = 0;
+  loadTrimPreview(file);
   updateButton();
 }
 
@@ -104,7 +105,7 @@ ffmpeg.on('log', ({ message }) => {
   const t = /time=\s*(\d+):(\d+):(\d+\.\d+)/.exec(message);
   if (t && durationSec > 0 && isConverting) {
     const cur = (+t[1]) * 3600 + (+t[2]) * 60 + parseFloat(t[3]);
-    const pct = 10 + Math.round((cur / durationSec) * 85);
+    const pct = 10 + Math.round((cur / effectiveDuration()) * 85);
     setProgress(pct);
     setStatus(`Convertendo vídeo... (${Math.min(99, pct)}%)`);
   }
@@ -200,6 +201,126 @@ window.addEventListener('DOMContentLoaded', () => {
   setTimeout(initFFmpeg, 300);
 });
 
+/* ---------- Ajustar duração (corte de início/fim) ---------- */
+const trimSection = document.getElementById('trimSection');
+const trimVideo = document.getElementById('trimVideo');
+const trimNoPreview = document.getElementById('trimNoPreview');
+const tStartRange = document.getElementById('trimStartRange');
+const tEndRange = document.getElementById('trimEndRange');
+const tStartMin = document.getElementById('trimStartMin');
+const tStartSec = document.getElementById('trimStartSec');
+const tEndMin = document.getElementById('trimEndMin');
+const tEndSec = document.getElementById('trimEndSec');
+let trimTotal = 0;   // duração original (s)
+let trimStart = 0;   // segundos cortados do início
+let trimEnd = 0;     // segundos cortados do fim
+let trimUrl = null;
+let previewStopAt = null;
+
+function fmtTime(t) {
+  t = Math.max(0, Math.round(t));
+  const hh = Math.floor(t / 3600), mm = Math.floor((t % 3600) / 60), ss = t % 60;
+  const p = (n) => String(n).padStart(2, '0');
+  return hh ? `${hh}:${p(mm)}:${p(ss)}` : `${p(mm)}:${p(ss)}`;
+}
+function effectiveDuration() {
+  const total = trimTotal || durationSec;
+  const d = total - trimStart - trimEnd;
+  return d > 0 ? d : (durationSec || 1);
+}
+// Argumentos do FFmpeg para o corte (vão antes de -i)
+function trimArgs() {
+  const total = trimTotal || durationSec;
+  if (!total || (trimStart <= 0 && trimEnd <= 0)) return [];
+  const len = total - trimStart - trimEnd;
+  if (len <= 0) return [];
+  const a = [];
+  if (trimStart > 0) a.push('-ss', trimStart.toFixed(2));
+  a.push('-t', len.toFixed(2));
+  return a;
+}
+function renderTrim() {
+  const max = Math.floor(trimTotal);
+  tStartRange.max = max; tEndRange.max = max;
+  tStartRange.value = trimStart; tEndRange.value = trimEnd;
+  tStartMin.value = Math.floor(trimStart / 60); tStartSec.value = Math.floor(trimStart % 60);
+  tEndMin.value = Math.floor(trimEnd / 60); tEndSec.value = Math.floor(trimEnd % 60);
+  document.getElementById('trimOrig').innerText = trimTotal ? fmtTime(trimTotal) : '--:--';
+  document.getElementById('trimRange').innerText = trimTotal ? `${fmtTime(trimStart)} → ${fmtTime(trimTotal - trimEnd)}` : '--:--';
+  document.getElementById('trimNew').innerText = trimTotal ? fmtTime(trimTotal - trimStart - trimEnd) : '--:--';
+}
+// Garante que sempre sobre pelo menos 1 segundo de vídeo
+function setTrim(start, end, changed) {
+  const max = Math.max(0, trimTotal - 1);
+  start = Math.max(0, Math.min(Number(start) || 0, max));
+  end = Math.max(0, Math.min(Number(end) || 0, max));
+  if (start + end > max) {
+    if (changed === 'start') start = max - end; else end = max - start;
+  }
+  trimStart = start; trimEnd = end;
+  renderTrim();
+}
+tStartRange.addEventListener('input', () => { setTrim(tStartRange.value, trimEnd, 'start'); seekPreview(trimStart); });
+tEndRange.addEventListener('input', () => { setTrim(trimStart, tEndRange.value, 'end'); seekPreview(trimTotal - trimEnd); });
+[tStartMin, tStartSec].forEach((el) => el.addEventListener('change', () =>
+  setTrim((+tStartMin.value || 0) * 60 + (+tStartSec.value || 0), trimEnd, 'start')));
+[tEndMin, tEndSec].forEach((el) => el.addEventListener('change', () =>
+  setTrim(trimStart, (+tEndMin.value || 0) * 60 + (+tEndSec.value || 0), 'end')));
+document.getElementById('trimSetStart').addEventListener('click', () => setTrim(Math.floor(trimVideo.currentTime), trimEnd, 'start'));
+document.getElementById('trimSetEnd').addEventListener('click', () => setTrim(trimStart, Math.floor(trimTotal - trimVideo.currentTime), 'end'));
+document.getElementById('trimResetBtn').addEventListener('click', () => setTrim(0, 0));
+document.getElementById('trimPreviewBtn').addEventListener('click', () => {
+  if (!trimVideo.duration) return;
+  previewStopAt = trimTotal - trimEnd;
+  trimVideo.currentTime = trimStart;
+  trimVideo.play();
+});
+trimVideo.addEventListener('timeupdate', () => {
+  if (previewStopAt != null && trimVideo.currentTime >= previewStopAt) {
+    trimVideo.pause();
+    previewStopAt = null;
+  }
+});
+trimVideo.addEventListener('pause', () => { if (trimVideo.currentTime < (previewStopAt || 0)) previewStopAt = null; });
+function seekPreview(t) {
+  if (trimVideo.duration) { previewStopAt = null; trimVideo.pause(); trimVideo.currentTime = Math.min(t, trimVideo.duration); }
+}
+
+async function loadTrimPreview(file) {
+  if (trimUrl) URL.revokeObjectURL(trimUrl);
+  trimUrl = URL.createObjectURL(file);
+  trimTotal = 0; trimStart = 0; trimEnd = 0;
+  trimSection.style.display = 'block';
+  trimNoPreview.style.display = 'none';
+  trimVideo.style.display = '';
+  renderTrim();
+  trimVideo.onloadedmetadata = () => {
+    if (isFinite(trimVideo.duration) && trimVideo.duration > 0) {
+      trimTotal = trimVideo.duration;
+      renderTrim();
+    }
+  };
+  trimVideo.onerror = async () => {
+    // Navegador não reproduz o formato: obtém a duração pelo FFmpeg
+    trimVideo.style.display = 'none';
+    trimNoPreview.style.display = 'block';
+    document.getElementById('trimSetStart').style.display = 'none';
+    document.getElementById('trimSetEnd').style.display = 'none';
+    if (!isFFmpegReady && !(await initFFmpeg())) return;
+    try {
+      const name = 'probe_' + Date.now();
+      await ffmpeg.writeFile(name, await fetchFile(file));
+      durationSec = 0;
+      try { await ffmpeg.exec(['-i', name]); } catch (e) {}
+      await ffmpeg.deleteFile(name).catch(() => {});
+      if (durationSec > 0) { trimTotal = durationSec; renderTrim(); }
+    } catch (e) { console.warn(e); }
+  };
+  document.getElementById('trimSetStart').style.display = '';
+  document.getElementById('trimSetEnd').style.display = '';
+  trimVideo.src = trimUrl;
+}
+
 /* ---------- conversão ---------- */
 convertBtn.addEventListener('click', async () => {
   if (!selectedFile || isConverting) return;
@@ -258,7 +379,7 @@ convertBtn.addEventListener('click', async () => {
       // AVI compatível com MP4 players: mesmas características do AMV
       // (mesma resolução/fps, vídeo MJPEG, áudio mono 22050 Hz).
       const vBase = [
-        '-i', inputName,
+        ...trimArgs(), '-i', inputName,
         '-vf', vf,
         '-c:v', 'mjpeg',
         '-q:v', quality,
@@ -283,7 +404,7 @@ convertBtn.addEventListener('click', async () => {
       }
     } else {
       const args = [
-        '-i', inputName,
+        ...trimArgs(), '-i', inputName,
         '-vf', vf,
         '-c:v', 'amv',
         '-q:v', quality,
@@ -303,7 +424,7 @@ convertBtn.addEventListener('click', async () => {
         log('>> Tentando novamente sem áudio (fallback)...');
         setStatus('Ajustando parâmetros e tentando novamente...');
         code = await ffmpeg.exec([
-          '-i', inputName,
+          ...trimArgs(), '-i', inputName,
           '-vf', vf,
           '-c:v', 'amv',
           '-q:v', '6',
