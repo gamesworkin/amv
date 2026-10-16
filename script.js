@@ -54,7 +54,10 @@ function updateButton() {
   convertBtn.disabled = !(selectedFile && isFFmpegReady && !isConverting);
   if (isConverting) convertBtn.innerText = 'Convertendo...';
   else if (!isFFmpegReady) convertBtn.innerText = 'Carregando motor...';
-  else convertBtn.innerText = 'Converter para .' + document.getElementById('format').value.toUpperCase();
+  else {
+    const f = document.getElementById('format').value;
+    convertBtn.innerText = f === 'xvid' ? 'Converter para .AVI (XviD)' : 'Converter para .' + f.toUpperCase();
+  }
 }
 
 /* ---------- seleção de arquivo ---------- */
@@ -152,6 +155,19 @@ async function initFFmpeg() {
 }
 
 document.getElementById('format').addEventListener('change', updateButton);
+
+/* ---------- Perfil YP3: AMV 160x128, 15 fps, mono 22050 Hz ---------- */
+const YP3 = { format: 'amv', resolution: '160x128', fps: '15', quality: '6' };
+document.getElementById('profile').addEventListener('change', (e) => {
+  if (e.target.value !== 'yp3') return;
+  for (const [id, v] of Object.entries(YP3)) document.getElementById(id).value = v;
+  updateButton();
+});
+['format', 'resolution', 'fps', 'quality'].forEach((id) =>
+  document.getElementById(id).addEventListener('change', () => {
+    const p = document.getElementById('profile');
+    if (p.value === 'yp3' && document.getElementById(id).value !== YP3[id]) p.value = 'custom';
+  }));
 
 /* ---------- opção "Remover faixas pretas" (só com Esticar) ---------- */
 const aspectSel = document.getElementById('aspect');
@@ -340,14 +356,16 @@ convertBtn.addEventListener('click', async () => {
   const ext = dot > -1 ? selectedFile.name.slice(dot) : '.mp4';
   const inputName = 'input' + ext.toLowerCase();
   const format = document.getElementById('format').value; // amv | avi
-  const outputName = 'output.' + format;
+  const outputName = 'output.' + (format === 'amv' ? 'amv' : 'avi');
 
   try {
     await ffmpeg.writeFile(inputName, await fetchFile(selectedFile));
 
     const resolution = document.getElementById('resolution').value; // ex: 160x128
     const [w, h] = resolution.split('x').map(Number);
-    const stretch = document.getElementById('aspect').value === 'stretch';
+    const aspectMode = document.getElementById('aspect').value;
+    const stretch = aspectMode === 'stretch';
+    const rot = { cw: 'transpose=1,', ccw: 'transpose=2,', '180': 'hflip,vflip,' }[document.getElementById('rotate').value] || '';
     const fps = document.getElementById('fps').value;
     const quality = document.getElementById('quality').value;
 
@@ -363,9 +381,17 @@ convertBtn.addEventListener('click', async () => {
     }
 
     // O codec AMV exige dimensões exatas; com "manter proporção" usamos padding.
-    const vf = stretch
-      ? `${crop}scale=${w}:${h},fps=${fps},format=yuvj420p`
-      : `scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black,fps=${fps},format=yuvj420p`;
+    // Dimensões pares (exigência de MJPEG/MPEG-4) e rotação antes da escala.
+    const pad = `pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black`;
+    let geo;
+    if (stretch) geo = `${crop}${rot}scale=${w}:${h}`;
+    else if (aspectMode === 'fill') geo = `${rot}scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}`;
+    else if (aspectMode === 'vertical') {
+      // Recorta o centro em 9:16 e encaixa na tela (ideal para telas em pé 128x160 / 120x160)
+      geo = `${rot}crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=${w}:${h}:force_original_aspect_ratio=decrease,${pad}`;
+    } else geo = `${rot}scale=${w}:${h}:force_original_aspect_ratio=decrease,${pad}`;
+    const pixFmt = format === 'xvid' ? 'yuv420p' : 'yuvj420p';
+    const vf = `${geo},setsar=1,fps=${fps},format=${pixFmt}`;
 
     setStatus('Convertendo vídeo...');
     setProgress(10);
@@ -375,7 +401,21 @@ convertBtn.addEventListener('click', async () => {
     const blockSize = Math.round(22050 / Number(fps));
 
     let code;
-    if (format === 'avi') {
+    if (format === 'xvid') {
+      // AVI XviD: MPEG-4 Part 2 sem B-frames, GOP curto, FourCC XVID, áudio MP3 mono.
+      const vBase = [
+        ...trimArgs(), '-i', inputName, '-vf', vf,
+        '-c:v', 'mpeg4', '-vtag', 'XVID', '-q:v', String(Math.max(2, Math.round(Number(quality) * 0.8))),
+        '-bf', '0', '-g', String(Number(fps) * 2), '-pix_fmt', 'yuv420p',
+        '-max_muxing_queue_size', '1024',
+      ];
+      code = await ffmpeg.exec(vBase.concat(['-c:a', 'libmp3lame', '-b:a', '64k', '-ar', '22050', '-ac', '1', '-f', 'avi', '-y', outputName]));
+      if (code !== 0) {
+        log('>> MP3 indisponível, usando áudio IMA ADPCM (fallback)...');
+        code = await ffmpeg.exec(vBase.concat(['-c:a', 'adpcm_ima_wav', '-ar', '22050', '-ac', '1', '-f', 'avi', '-y', outputName]));
+      }
+      if (code !== 0) code = await ffmpeg.exec(vBase.concat(['-an', '-f', 'avi', '-y', outputName]));
+    } else if (format === 'avi') {
       // AVI compatível com MP4 players: mesmas características do AMV
       // (mesma resolução/fps, vídeo MJPEG, áudio mono 22050 Hz).
       const vBase = [
@@ -385,6 +425,7 @@ convertBtn.addEventListener('click', async () => {
         '-q:v', quality,
         '-pix_fmt', 'yuvj420p',
         '-vtag', 'MJPG',
+        '-max_muxing_queue_size', '1024',
       ];
       code = await ffmpeg.exec(vBase.concat([
         '-c:a', 'adpcm_ima_wav', '-ar', '22050', '-ac', '1',
@@ -441,12 +482,13 @@ convertBtn.addEventListener('click', async () => {
     const data = await ffmpeg.readFile(outputName);
     if (!data || data.length === 0) throw new Error('Arquivo de saída vazio');
 
-    const blob = new Blob([data.buffer], { type: format === 'avi' ? 'video/x-msvideo' : 'video/x-amv' });
+    const ext = format === 'amv' ? 'amv' : 'avi';
+    const blob = new Blob([data.buffer], { type: ext === 'avi' ? 'video/x-msvideo' : 'video/x-amv' });
     lastUrl = URL.createObjectURL(blob);
     downloadLink.href = lastUrl;
     const baseName = dot > -1 ? selectedFile.name.slice(0, dot) : selectedFile.name;
-    downloadLink.download = `${baseName}_player.${format}`;
-    downloadLink.innerText = `Baixar Arquivo .${format.toUpperCase()}`;
+    downloadLink.download = `${baseName}_player.${ext}`;
+    downloadLink.innerText = `Baixar Arquivo .${ext.toUpperCase()}`;
     document.getElementById('resultSize').innerText =
       `Tamanho final: ${(blob.size / (1024 * 1024)).toFixed(2)} MB`;
 
