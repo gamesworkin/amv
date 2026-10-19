@@ -1,0 +1,17 @@
+{
+  "name": "Workin'Store | Sua Lista",
+  "short_name": "Catálogo Workin'Store",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "icons": [
+    {
+      "src": "sl.png",
+      "sizes": "128x128",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    }
+  ]
+}
