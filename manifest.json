@@ -1,6 +1,6 @@
 {
-  "name": "Workin'Store | Sua Lista",
-  "short_name": "Catálogo Workin'Store",
+  "name": "AMV/AVI Converter",
+  "short_name": "AMV/AVI Converter MP4 Player Workin'Store",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -8,7 +8,7 @@
   "theme_color": "#0b0e14",
   "icons": [
     {
-      "src": "sl.png",
+      "src": "fav.ico",
       "sizes": "128x128",
       "type": "image/x-icon",
       "purpose": "any maskable"
