@@ -435,7 +435,7 @@ convertBtn.addEventListener('click', async () => {
       // No perfil YP3 o áudio fica travado em Stereo.
       const audioMode = isYP3() ? 'yp3' : document.getElementById('audio').value;
       const channels = audioMode === 'yp3' ? '2' : '1';
-      log(`>> Áudio: ${audioMode === 'yp3' ? 'YP3 (Stereo, WAV s16le, 22050khz)' : 'Padrão (Mono, WAV s16le, 22050khz)'}`);
+      log(`>> Áudio: ${audioMode === 'yp3' ? 'YP3 (Stereo, WAV s16le, 22050hz)' : 'Padrão (Mono, WAV s16le, 22050hz)'}`);
       code = await ffmpeg.exec(vBase.concat([
         '-c:a', 'pcm_s16le', '-ar', '22050', '-ac', channels,
         '-f', 'avi', '-y', outputName,
